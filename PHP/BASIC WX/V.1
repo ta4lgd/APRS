@@ -1,0 +1,70 @@
+<?php
+
+// APRS sunucusunun adresi ve portu
+$APRS_SERVER_NAME = "rotate.aprs2.net";  // APRS sunucusunun adresi
+$APRS_SERVER_PORT = 14580;               // APRS sunucusunun portu
+
+// Gönderen istasyonun çağrısı ve şifresi
+$STATION_ID = "CALLSIGN";  // Kendi istasyon çağrınızı buraya yazın
+$APRS_PASS = "PASS";       // Kendi şifrenizi buraya yazın
+
+// Konum 
+$STATION_LAT = "3632.90N";  // 35°50.04' N
+$STATION_LONG = "03159.65E"; // 32°49.16' E
+
+// cURL ile hava durumu verisi çekme
+$city = "Alanya"; // Şehir adını belirtin
+$url = "https://wttr.in/$city?format=%C+%t+%h+%p+%w+%T"; // Tüm hava durumu bilgilerini almak için
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+$response = curl_exec($ch);
+curl_close($ch);
+
+// Eğer veri çekme başarılıysa, veriyi işleyip çıktıyı ver
+if ($response !== false) {
+    // Sıcaklık, hava durumu, nem, basınç, rüzgar ve duyulan sıcaklık bilgilerini al
+    list($weather_condition, $temperature, $humidity, $pressure, $windspeed, $apparent_temperature) = explode('+', trim($response));
+    $weatherMessage = "Weather: $weather_condition, Temp: $temperature, Humidity: $humidity, Pressure: $pressure, Wind: $windspeed, Feels like: $apparent_temperature";
+} else {
+    $weatherMessage = "Error: Hava durumu verisi alınamadı.";
+}
+
+// APRS sunucusuna bağlan
+$socket = fsockopen($APRS_SERVER_NAME, $APRS_SERVER_PORT, $errno, $errstr, 10);
+
+if (!$socket) {
+    echo "Error: $errno - $errstr\n";
+} else {
+    // Bağlantı başarılı, APRS sunucusuna giriş
+    $loginMessage = "user $STATION_ID pass $APRS_PASS vers PHP 1.0\n";
+    fwrite($socket, $loginMessage);
+
+    // Sunucudan gelen yanıtı oku
+    $response = fgets($socket, 128);
+    echo "Response: $response\n";
+
+    // Zamanı al
+    $currentTime = date('His'); // Saat, dakika ve saniye formatında
+
+    // Sembol belirlemek (Ev sembolü)
+    $symbol = "_";  // "-"" Ev sembolü (Primary Symbol Table'den)
+
+    // Mesajı bir değişkende tutmak
+    $message = " // // PHP BASED OTO APRS TEST // ta4lgd@bonosocials.com"; // Orijinal mesaj burada kaldı
+
+    // APRS mesajını oluştur (Sembol, hava durumu ve orijinal mesaj değişkeni eklenmiş)
+    $aprsMessage = $STATION_ID . ">APRS,TCPIP*:@" . $currentTime . "z" . $STATION_LAT . "/" . $STATION_LONG . $symbol . " " . $weatherMessage . " " . $message . "\n";
+
+    // Konum ve hava durumu bilgisini APRS sunucusuna gönder
+    fwrite($socket, $aprsMessage);
+
+    // Sunucudan gelen yanıtı oku
+    $response = fgets($socket, 128);
+    echo "Response: $response\n";
+
+    // Bağlantıyı kapat
+    fclose($socket);
+}
+?>
