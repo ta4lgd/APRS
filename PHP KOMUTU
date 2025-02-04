@@ -1,0 +1,51 @@
+<?php
+
+// APRS sunucusunun adresi ve portu
+$APRS_SERVER_NAME = "rotate.aprs2.net";  // APRS sunucusunun adresi
+$APRS_SERVER_PORT = 14580;               // APRS sunucusunun portu
+
+// Gönderen istasyonun çağrısı ve şifresi
+$STATION_ID = "";  // Kendi istasyon çağrınızı buraya yazın
+$APRS_PASS = "";       // Kendi şifrenizi buraya yazın
+
+// Konum
+$STATION_LAT = "3632.90N";
+$STATION_LONG = "03159.65E";
+
+// APRS sunucusuna bağlan
+$socket = fsockopen($APRS_SERVER_NAME, $APRS_SERVER_PORT, $errno, $errstr, 10);
+
+if (!$socket) {
+    echo "Error: $errno - $errstr\n";
+} else {
+    // Bağlantı başarılı, APRS sunucusuna giriş
+    $loginMessage = "user $STATION_ID pass $APRS_PASS vers PHP 1.0\n";
+    fwrite($socket, $loginMessage);
+
+    // Sunucudan gelen yanıtı oku
+    $response = fgets($socket, 128);
+    echo "Response: $response\n";
+
+    // Zamanı al
+    $currentTime = date('His'); // Saat, dakika ve saniye formatında
+
+    // Sembol belirlemek (Ev sembolü)
+    $symbol = "-";  // Ev sembolü (Primary Symbol Table'den)
+
+    // Mesajı bir değişkende tutmak
+    $message = "PHP OTO APRS test ";
+
+    // APRS mesajını oluştur (Sembol ve mesaj değişkeni eklenmiş)
+    $aprsMessage = $STATION_ID . ">APRS,TCPIP*:@" . $currentTime . "z" . $STATION_LAT . "/" . $STATION_LONG . $symbol . " " . $message . "\n";
+
+    // Konum bilgisini APRS sunucusuna gönder
+    fwrite($socket, $aprsMessage);
+
+    // Sunucudan gelen yanıtı oku
+    $response = fgets($socket, 128);
+    echo "Response: $response\n";
+
+    // Bağlantıyı kapat
+    fclose($socket);
+}
+?>
