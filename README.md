@@ -1,4 +1,4 @@
 # APRS
-//APRS KODLARI ARŞİVİM
-//TA4LGD
-//sgazidemiray@gmail.com
+// APRS KODLARI ARŞİVİM<br>
+// TA4LGD<br>
+// sgazidemiray@gmail.com
